@@ -1,13 +1,13 @@
 package snakewars.samplebot;
 
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import snakewars.samplebot.dtos.GameStateDTO;
 import snakewars.samplebot.dtos.PointDTO;
 import snakewars.samplebot.dtos.SnakeDTO;
 import snakewars.samplebot.logic.Move;
-
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class GameBoardState {
 
@@ -29,7 +29,17 @@ public class GameBoardState {
 
     public Set<PointDTO> getOccupiedCells() {
         return Stream.concat(gameState.getWalls().stream(),
-                gameState.getSnakes().stream().flatMap(snake -> snake.getCells().stream()))
-                .collect(Collectors.toSet());
+                             gameState.getSnakes().stream().flatMap(snake -> snake.getCells().stream()))
+                     .collect(Collectors.toSet());
     }
+
+    public Set<PointDTO> getFoodCells() {
+        return gameState.getFood().stream().collect(Collectors.toSet());
+    }
+
+    public Set<SnakeDTO> getSnakeCells() {
+        return gameState.getSnakes().stream().collect(Collectors.toSet());
+    }
+
+
 }
