@@ -1,13 +1,13 @@
 package snakewars.samplebot.logic;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.IntStream;
+
 import snakewars.samplebot.dtos.PointDTO;
 import snakewars.samplebot.dtos.SizeDTO;
 import snakewars.samplebot.dtos.SnakeDTO;
 import snakewars.samplebot.dtos.SnakeDirection;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.IntStream;
 
 public class Move {
 
@@ -31,8 +31,8 @@ public class Move {
 
     public PointDTO getSnakeNewHead(SnakeDTO snake, SizeDTO boardSize) {
         int index = IntStream.range(0, offsets.size())
-                .filter(indexOfOffset -> offsets.get(indexOfOffset).SnakeDirection.equals(snake.getDirection()))
-                .findFirst().getAsInt();
+                             .filter(indexOfOffset -> offsets.get(indexOfOffset).SnakeDirection.equals(snake.getDirection()))
+                             .findFirst().getAsInt();
         DirectionOffset offset = offsets.get((index + moveOffset + 4) % 4);
         PointDTO newHead = offsetModule(snake.getHead(), offset.Offset, boardSize);
         return newHead;
@@ -40,7 +40,7 @@ public class Move {
 
     private PointDTO offsetModule(PointDTO head, Offset offset, SizeDTO boardSize) {
         return new PointDTO((head.getX() + offset.DX + boardSize.getWidth()) % boardSize.getWidth(),
-                (head.getY() + offset.DY + boardSize.getHeight()) % boardSize.getHeight());
+                            (head.getY() + offset.DY + boardSize.getHeight()) % boardSize.getHeight());
     }
 
     public String getCommand() {

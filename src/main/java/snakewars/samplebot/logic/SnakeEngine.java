@@ -1,5 +1,9 @@
 package snakewars.samplebot.logic;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -17,7 +21,7 @@ import static snakewars.samplebot.dtos.SnakeDirection.Right;
 import static snakewars.samplebot.dtos.SnakeDirection.Up;
 
 public class SnakeEngine {
-
+    Logger logger = LoggerFactory.getLogger(SnakeEngine.class);
     private final String mySnakeId;
     private final Random random = new Random();
 
@@ -26,18 +30,21 @@ public class SnakeEngine {
     }
 
     public Move getNextMove(GameBoardState gameBoardState) {
+        Set<PointDTO> occupiedCells = gameBoardState.getOccupiedCells();
         //===========================
         // Your snake logic goes here
         //===========================
 
         SnakeDTO mySnake = gameBoardState.getSnake(mySnakeId);
+        Move nextMove = null;
+        List<Move> unallowedMoves = new ArrayList<>(6);
         if(mySnake.isAlive()) {
-            PointDTO nearestFood = findNearestFood(gameBoardState, mySnake);
-            if(nearestFood == null) {
-                return randomMove(gameBoardState);
-            }
-            Move nextMove = determineNextMove(nearestFood, mySnake);
-
+            do {
+                if(nextMove != null) {
+                    unallowedMoves.add(nextMove);
+                }
+                nextMove = findNextMove(gameBoardState, mySnake, unallowedMoves);
+            } while(!checkIfMoveIsAllowed(nextMove, gameBoardState, occupiedCells) && unallowedMoves.size() < 20);
             // fallback
             if(nextMove != null) {
                 return nextMove;
@@ -48,15 +55,27 @@ public class SnakeEngine {
         return Move.NONE;
     }
 
-    private Move findNextMove(GameBoardState gameBoardState, SnakeDTO mySnake) {
+    private boolean checkIfMoveIsAllowed(Move nextMove, GameBoardState gameBoardState, Set<PointDTO> occupiedCells) {
+        PointDTO newHead = gameBoardState.getSnakeNewHeadPosition(mySnakeId, nextMove);
+        final boolean isAllowed = !occupiedCells.contains(newHead);
+        logger.info("next move to {} is allowed {}", nextMove.getCommand(), isAllowed);
+        return isAllowed;
+    }
+
+    private Move findNextMove(GameBoardState gameBoardState, SnakeDTO mySnake, List<Move> unallowedMoves) {
+        Move nextMove;
         PointDTO nearestFood = findNearestFood(gameBoardState, mySnake);
         if(nearestFood == null) {
-            return randomMove(gameBoardState);
+            nextMove = randomMove(gameBoardState);
+        } else {
+            nextMove = determineNextMove(nearestFood, mySnake, unallowedMoves);
         }
-        Move nextMove = determineNextMove(nearestFood, mySnake);
+
+        return nextMove;
     }
 
     private Move randomMove(GameBoardState gameBoardState) {
+        logger.info("Fallback to random move");
         Set<PointDTO> occupiedCells = gameBoardState.getOccupiedCells();
 
         // Check possible moves in random order.
@@ -76,27 +95,36 @@ public class SnakeEngine {
         return Move.NONE;
     }
 
-    private Move determineNextMove(PointDTO nearestFood, SnakeDTO mySnake) {
+    private Move determineNextMove(PointDTO nearestFood, SnakeDTO mySnake, List<Move> unallowedMoves) {
         final SnakeDirection currentDirection = mySnake.getDirection();
         final PointDTO currentPosition = mySnake.getHead();
-
+        Move nextMove = null;
         SnakeDirection nextDirection = determineNextDirection(currentPosition, nearestFood);
 
         if(currentDirection == nextDirection) {
-            return Move.STRAIGHT;
+            nextMove = Move.STRAIGHT;
         } else if(currentDirection == Down && nextDirection == Up || currentDirection == Up && nextDirection == Down || currentDirection == Left
                 && nextDirection == Right || currentDirection == Right && nextDirection == Left) {
-            return Move.LEFT;
+            nextMove = Move.LEFT;
         } else if(currentDirection == Up) {
-            return nextDirection == Left ? Move.LEFT : Move.RIGHT;
+            nextMove = nextDirection == Left ? Move.LEFT : Move.RIGHT;
         } else if(currentDirection == Down) {
-            return nextDirection == Right ? Move.RIGHT : Move.LEFT;
+            nextMove = nextDirection == Right ? Move.LEFT : Move.RIGHT;
         } else if(currentDirection == Right) {
-            return nextDirection == Up ? Move.LEFT : Move.RIGHT;
+            nextMove = nextDirection == Up ? Move.LEFT : Move.RIGHT;
         } else if(currentDirection == Left) {
-            return nextDirection == Up ? Move.RIGHT : Move.LEFT;
+            nextMove = nextDirection == Up ? Move.RIGHT : Move.LEFT;
         }
-        return Move.STRAIGHT;
+        if(unallowedMoves.contains(nextMove)) {
+            List<Move> moves = new LinkedList<>(Arrays.asList(Move.LEFT, Move.RIGHT, Move.STRAIGHT));
+            moves.remove(unallowedMoves);
+            if(moves.size() == 0) {
+                return Move.STRAIGHT;
+            } else {
+                return moves.get(random.nextInt(moves.size()));
+            }
+        }
+        return nextMove;
     }
 
     private SnakeDirection determineNextDirection(PointDTO currentPosition, PointDTO nearestFood) {

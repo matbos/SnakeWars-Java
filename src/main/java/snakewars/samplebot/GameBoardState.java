@@ -40,6 +40,4 @@ public class GameBoardState {
     public Set<SnakeDTO> getSnakeCells() {
         return gameState.getSnakes().stream().collect(Collectors.toSet());
     }
-
-
 }
